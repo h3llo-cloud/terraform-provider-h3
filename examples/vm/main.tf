@@ -2,7 +2,6 @@ terraform {
   required_providers {
     h3 = {
       source  = "h3llo-cloud/h3"
-      version = "0.0.0"
     }
   }
 }
