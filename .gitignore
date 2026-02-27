@@ -1,0 +1,29 @@
+# Binaries
+terraform-provider-h3
+*.exe
+
+# Go
+*.so
+*.dylib
+*.test
+*.out
+go.work
+go.work.sum
+
+# Terraform
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup
+*.tfvars
+crash.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
