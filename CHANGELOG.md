@@ -7,7 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.0-rc.2] - 2026-11-23
+## [0.3.0-rc.3] - 2026-11-23
+
+- `0.3.0-rc.2` was tagged but never published either (the release job could not fetch Go 1.26.11);
+  `0.3.0-rc.3` is built by a release image that carries Go 1.26.11.
 
 ### Fixed
 
