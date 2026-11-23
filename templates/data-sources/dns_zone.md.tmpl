@@ -1,0 +1,16 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.RenderedProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+Look up an existing zone of a project by name.
+
+## Example Usage
+
+{{ tffile "examples/data-sources/h3_dns_zone/data-source.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}

@@ -1,0 +1,20 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.RenderedProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+Authoritative DNS zone of a project in the h3dns service. A new zone is `pending_verification` until its delegation to `nameservers` (or the TXT `verification_txt_name` = `verification_txt_value`) is seen; record sets can be prepared before that and are published when the zone becomes `active`.
+
+## Example Usage
+
+{{ tffile "examples/resources/h3_dns_zone/resource.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+{{ codefile "shell" "examples/resources/h3_dns_zone/import.sh" }}

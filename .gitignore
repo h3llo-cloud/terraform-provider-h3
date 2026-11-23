@@ -28,3 +28,13 @@ crash.log
 
 # OS
 .DS_Store
+
+# Release build output
+dist/
+dist-mirror/
+dist-keys/
+selftest/
+
+# CI: coverage of the test job (artifact downloaded by release; goreleaser refuses a dirty tree)
+coverage-total.txt
+coverage-func.txt

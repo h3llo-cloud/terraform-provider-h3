@@ -2,25 +2,44 @@ terraform {
   required_providers {
     h3 = {
       source  = "h3llo-cloud/h3"
+      version = "~> 0.3"
     }
   }
 }
 
-provider "h3" {
-  api_endpoint = "https://api.h3llo.cloud"
-  key_id       = "your-api-key-id-here"
-  secret_key   = "your-api-key-secret-here"
+# export H3_KEY_ID=... H3_SECRET_KEY=...   (api_endpoint: https://api.h3llo.cloud by default)
+provider "h3" {}
+
+variable "project_id" {
+  type = string
+}
+
+variable "user_id" {
+  type        = string
+  description = "Your user id (the owner of the API key)"
+}
+
+variable "ssh_public_key" {
+  type        = string
+  description = "OpenSSH public key, e.g. the contents of ~/.ssh/id_ed25519.pub"
+}
+
+resource "h3_ssh_key" "deploy" {
+  user_id    = var.user_id
+  name       = "deploy"
+  public_key = var.ssh_public_key
 }
 
 resource "h3_vm" "test" {
-  project_id = "your-project-id-here"
+  project_id = var.project_id
   name       = "terraform-test-vm"
   cpu        = 2
   memory     = "4Gi"
   disk_size  = "15Gi"
   image      = "ubuntu:24.04"
-  ssh_key    = "ssh-ed25519 ******** key-description"
   white_ip   = true
+  # Keys come from h3ssh only; changing the list does not restart the VM.
+  ssh_key_ids = [h3_ssh_key.deploy.id]
 }
 
 output "vm_id" {

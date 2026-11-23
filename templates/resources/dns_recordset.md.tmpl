@@ -1,0 +1,20 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.RenderedProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+One DNS record set (all records of a name and type) in an `h3_dns_zone`, like `aws_route53_record`. The whole set is replaced on every change. Record sets managed by the platform (LB/EIP/DB auto-records, ACME challenges) cannot be changed and are reported as conflicts.
+
+## Example Usage
+
+{{ tffile "examples/resources/h3_dns_recordset/resource.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+{{ codefile "shell" "examples/resources/h3_dns_recordset/import.sh" }}

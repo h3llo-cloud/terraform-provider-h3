@@ -1,0 +1,34 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.RenderedProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+Security group of a project: stateful firewall rules (return traffic is allowed automatically) applied to the network
+port of a VM. Every project has a group named `default` that allows all inbound and outbound traffic; it cannot be
+created or deleted, but it can be imported and its rules edited (that is how you restrict access for VMs that use it).
+
+Rules can be managed in one of two ways — **do not mix them on one group**:
+
+- inline `rule` blocks: the resource owns the whole rule set, rules added elsewhere are removed on the next apply;
+- no `rule` blocks + `h3_security_group_rule` resources: the group resource does not touch the rules.
+
+Removing all `rule` blocks switches the group to the second mode and leaves its current rules in place.
+
+Rule evaluation: a lower `priority` wins; among the groups of one VM the order is global (a `deny` in one group beats
+an `allow` with a higher number in another group).
+
+## Example Usage
+
+{{ tffile "examples/resources/h3_security_group/resource.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+{{ codefile "shell" "examples/resources/h3_security_group/import.sh" }}
+
+Destroying an imported `default` group only removes it from the state.

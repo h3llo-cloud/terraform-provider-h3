@@ -1,0 +1,68 @@
+---
+page_title: "Provider: h3llo cloud (h3)"
+description: |-
+  Manage h3llo cloud infrastructure: virtual machines, disks, snapshots and backups, VPC networks and public IPs, security groups, DNS, load balancers, managed Kubernetes, managed databases, S3 buckets and SSH keys.
+---
+
+# h3llo cloud Provider
+
+The `h3` provider manages [h3llo cloud](https://h3llo.cloud) infrastructure as code: virtual machines, disks, snapshots and
+backups, VPC networks and Elastic IPs, managed PostgreSQL/MariaDB, S3 buckets and SSH keys. It works with Terraform ≥ 1.5
+and OpenTofu.
+
+## Example Usage
+
+{{ tffile "examples/provider/provider.tf" }}
+
+## Authentication
+
+Create an API key in the h3llo cloud console. The key has an ID and a secret; requests are signed with
+HMAC-SHA256, the secret never leaves your machine. Pass them through the environment rather than the configuration:
+
+```shell
+export H3_KEY_ID="<api key id>"
+export H3_SECRET_KEY="<api key secret>"
+```
+
+| Argument | Environment variable | Default |
+|---|---|---|
+| `api_endpoint` | `H3_API_ENDPOINT` | `https://api.h3llo.cloud` |
+| `key_id` | `H3_KEY_ID` | — |
+| `secret_key` | `H3_SECRET_KEY` | — |
+| `timeout` | `H3_TIMEOUT` | `30` (seconds per HTTP request) |
+| `max_retries` | `H3_MAX_RETRIES` | `3` (`0` disables retries) |
+| `project_id` | `H3_PROJECT_ID` | — (default project of resources and data sources) |
+
+## Projects
+
+Every object belongs to a project. Set the default project once with `project_id` (or `H3_PROJECT_ID`) and omit
+`project_id` on resources; set it on a resource to place that resource in another project. The API key must list the
+project. Changing the default later does not move existing resources: they keep the project recorded in state.
+
+## Resource names
+
+Names follow `h3_<object>` (`h3_vm`, `h3_vpc`, `h3_network`, `h3_eip`) or `h3_<service>_<object>` (`h3_dns_zone`,
+`h3_security_group_rule`). Version 0.3 renamed `h3_ovn_vpc`, `h3_ovn_network` and `h3_ovn_eip`; the old names are
+deprecated aliases until 1.0. See [Upgrading to 0.3](guides/migration-0.3) to move state without recreating anything.
+
+## Service availability
+
+All resources use the public API `https://api.h3llo.cloud` with an API key. VMs, disks, snapshots, backups, VPC
+networks, EIPs, security groups, databases, S3, DNS (`h3_dns_*`), Kubernetes (`h3_k8s_*`) and load balancers
+(`h3_lb`) are available; `h3_ssh_key` is being restored (create keys in the console and use their ids in
+`h3_vm.ssh_key_ids`). Service accounts and the IAM audit (`h3_service_account*`, `h3_service_accounts`,
+`h3_iam_audit_events`) are pending: h3iam does not accept API keys yet. The provider needs no new release when
+they are enabled.
+
+## Retries and rate limits
+
+Reads and deletes are retried on network errors, 429 and 5xx. Creates are retried only when the API reports it did not
+process the request (429, 502, 503, 504) and honor `Retry-After`; a timeout during a create is reported, not retried, so
+it never produces a duplicate VM or database. Re-run `terraform apply` after checking the console.
+
+## Import
+
+Every resource can be imported; the page of each resource lists the ID format. Terraform ≥ 1.5 and OpenTofu also accept
+`import {}` blocks.
+
+{{ .SchemaMarkdown | trimspace }}

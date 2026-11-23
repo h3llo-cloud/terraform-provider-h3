@@ -1,24 +1,26 @@
 terraform {
   required_providers {
     h3 = {
-      source = "h3llo-cloud/h3"
+      source  = "h3llo-cloud/h3"
+      version = "~> 0.3"
     }
   }
 }
 
-provider "h3" {
-  api_endpoint = "https://api.h3llo.cloud"
-  key_id       = "your-api-key-id-here"
-  secret_key   = "your-api-key-secret-here"
+# export H3_KEY_ID=... H3_SECRET_KEY=...   (api_endpoint: https://api.h3llo.cloud by default)
+provider "h3" {}
+
+variable "project_id" {
+  type = string
 }
 
 resource "h3_s3_bucket" "data" {
-  project_id = "your-project-id-here"
+  project_id = var.project_id
   name       = "my-data-bucket"
 }
 
 resource "h3_s3_bucket" "media" {
-  project_id = "your-project-id-here"
+  project_id = var.project_id
   name       = "my-media-bucket"
 }
 

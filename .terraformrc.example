@@ -1,0 +1,7 @@
+provider_installation {
+  dev_overrides {
+    "h3llo-cloud/h3" = "/path/to/h3terraform/bin" # make install-dev
+  }
+
+  direct {}
+}

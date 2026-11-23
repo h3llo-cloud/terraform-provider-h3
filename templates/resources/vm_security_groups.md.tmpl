@@ -1,0 +1,27 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.RenderedProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+The security groups of a VM. The list is exclusive: it replaces whatever groups the VM had. Changes apply live, without
+a VM restart. An empty list (`security_group_ids = []`) detaches every group: the VM is marked detached and the platform
+does not put it back on `default`. On destroy the VM goes back to its project's `default` group (allow all) unless
+`default_on_destroy = false`. Platform groups on the VM port (for example the managed Kubernetes project group) are not
+affected and are shown in `foreign_groups`.
+
+To add one group without owning the whole list (for example from several modules), use
+`h3_vm_security_group_attachment` instead. Do not use both on the same VM.
+
+## Example Usage
+
+{{ tffile "examples/resources/h3_vm_security_groups/resource.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+{{ codefile "shell" "examples/resources/h3_vm_security_groups/import.sh" }}

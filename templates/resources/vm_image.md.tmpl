@@ -1,0 +1,58 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.RenderedProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+~> **PREVIEW.** Custom images are a preview feature.
+
+{{ .Description | trimspace }}
+
+## Price and limits
+
+- Storage of an image is billed at **12 ₽ per GiB per month** of its virtual size (`size_gi`), from creation until the
+  image is deleted. There is no free volume. Billing item `VM_IMAGE_STORGB` (same price as `R_BASIC_STORGB`).
+- Up to **10 images per project**, each up to **256 GiB**.
+- Creating an image needs a workspace balance above zero.
+- Imported files are not scanned for viruses: import only images you trust.
+
+## Upload an image from your computer
+
+The import takes an HTTPS URL. To import a file from your computer, put it into your own S3 bucket and pass a presigned
+link to it:
+
+1. Upload the `qcow2` or `raw` file (optionally `.gz`/`.xz`) into a bucket of your project in h3s3. The object is billed
+   at the S3 tariffs; you can delete it once the image is `READY`.
+2. Make a presigned GET URL with the project S3 keys and the endpoint `https://storage.h3llo.cloud` (any S3 client;
+   in the console: «Из бакета S3»). The link must stay valid until the import ends:
+
+   ```shell
+   aws --endpoint-url https://storage.h3llo.cloud s3 cp ./my-image.qcow2 s3://my-bucket/images/my-image.qcow2
+   aws --endpoint-url https://storage.h3llo.cloud s3 presign s3://my-bucket/images/my-image.qcow2 --expires-in 86400
+   ```
+
+3. Pass the URL as `url` and set `size_gi` not below the virtual size of the file (`qemu-img info`):
+
+   ```terraform
+   resource "h3_vm_image" "mine" {
+     name    = "my-image"
+     url     = var.presigned_url # sensitive: keep it out of the code
+     size_gi = 20
+   }
+   ```
+
+The API (`POST /api/vms/v1/images/custom` with `projectId`, `name`, `url`, `sizeGi`, `firmware`) does not return the
+query string of the link.
+
+## Example Usage
+
+{{ tffile "examples/resources/h3_vm_image/resource.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+{{ codefile "shell" "examples/resources/h3_vm_image/import.sh" }}

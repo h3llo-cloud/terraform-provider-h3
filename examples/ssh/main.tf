@@ -1,20 +1,22 @@
 terraform {
   required_providers {
     h3 = {
-      source = "h3llo-cloud/h3"
+      source  = "h3llo-cloud/h3"
+      version = "~> 0.3"
     }
   }
 }
 
-provider "h3" {
-  api_endpoint = "https://api.h3llo.cloud"
-  key_id       = "your-api-key-id-here"
-  secret_key   = "your-api-key-secret-here"
+# export H3_KEY_ID=... H3_SECRET_KEY=...   (api_endpoint: https://api.h3llo.cloud by default)
+provider "h3" {}
+
+variable "project_id" {
+  type = string
 }
 
 # Create SSH key from inline public key
 resource "h3_ssh_key" "example" {
-  project_id = "your-project-id-here"
+  user_id    = "your-user-id-here" # must be the owner of the API key
   name       = "terraform-example-key"
   public_key = "ssh-ed25519 *** ***"
 }

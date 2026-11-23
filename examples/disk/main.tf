@@ -1,32 +1,34 @@
 terraform {
   required_providers {
     h3 = {
-      source = "h3llo-cloud/h3"
+      source  = "h3llo-cloud/h3"
+      version = "~> 0.3"
     }
   }
 }
 
-provider "h3" {
-  api_endpoint = "https://api.h3llo.cloud"
-  key_id       = "your-api-key-id-here"
-  secret_key   = "your-api-key-secret-here"
+# export H3_KEY_ID=... H3_SECRET_KEY=...   (api_endpoint: https://api.h3llo.cloud by default)
+provider "h3" {}
+
+variable "project_id" {
+  type = string
 }
 
 resource "h3_disk" "data" {
-  project_id    = "your-project-id-here"
+  project_id    = var.project_id
   name          = "my-data-disk"
   size          = "5Gi"
   storage_class = "replicated"
 }
 
 resource "h3_snapshot" "backup" {
-  project_id = "your-project-id-here"
+  project_id = var.project_id
   disk_id    = h3_disk.data.id
   name       = "daily-backup"
 }
 
 resource "h3_backup" "offsite" {
-  project_id  = "your-project-id-here"
+  project_id  = var.project_id
   snapshot_id = h3_snapshot.backup.id
   name        = "offsite-backup"
 }

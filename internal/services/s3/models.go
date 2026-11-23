@@ -31,20 +31,3 @@ type Bucket struct {
 	CreatedAt   string `json:"createdAt"`
 	UpdatedAt   string `json:"updatedAt"`
 }
-
-type GetBucketResponse struct {
-	Bucket  Bucket      `json:"bucket"`
-	Objects *BucketTree `json:"objects,omitempty"`
-}
-
-type BucketTree struct {
-	CurrentPath string       `json:"currentPath"`
-	Items       []BucketItem `json:"items"`
-}
-
-type BucketItem struct {
-	Name         string  `json:"name"`
-	Type         string  `json:"type"`
-	Size         *int64  `json:"size,omitempty"`
-	LastModified *string `json:"lastModified,omitempty"`
-}

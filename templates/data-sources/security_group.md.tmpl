@@ -1,0 +1,17 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.RenderedProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+Looks up a security group by `id`, or by `project_id` + `name` (case-insensitive; `name = "default"` finds the project
+default group).
+
+## Example Usage
+
+{{ tffile "examples/data-sources/h3_security_group/data-source.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}

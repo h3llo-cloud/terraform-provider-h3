@@ -2,14 +2,22 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	"h3terraform/internal/client"
 	"h3terraform/internal/services/backup"
+	"h3terraform/internal/services/database"
 	"h3terraform/internal/services/disk"
+	"h3terraform/internal/services/dns"
+	"h3terraform/internal/services/iam"
+	"h3terraform/internal/services/k8s"
+	"h3terraform/internal/services/lb"
 	"h3terraform/internal/services/net"
 	"h3terraform/internal/services/s3"
+	"h3terraform/internal/services/sg"
 	"h3terraform/internal/services/snapshot"
 	"h3terraform/internal/services/ssh"
 	"h3terraform/internal/services/vm"
@@ -35,6 +43,7 @@ type H3ProviderModel struct {
 	SecretKey   types.String `tfsdk:"secret_key"`
 	Timeout     types.Int64  `tfsdk:"timeout"`
 	MaxRetries  types.Int64  `tfsdk:"max_retries"`
+	ProjectID   types.String `tfsdk:"project_id"`
 }
 
 // New создает новый экземпляр провайдера
@@ -56,26 +65,33 @@ func (p *H3Provider) Schema(ctx context.Context, req provider.SchemaRequest, res
 		MarkdownDescription: "H3 Cloud Terraform Provider with HMAC authentication",
 		Attributes: map[string]schema.Attribute{
 			"api_endpoint": schema.StringAttribute{
-				MarkdownDescription: "H3 Cloud API endpoint (default: http://127.0.0.1:4001)",
+				MarkdownDescription: "h3llo cloud API endpoint. Default: `https://api.h3llo.cloud`. Can also be set with the `H3_API_ENDPOINT` environment variable.",
 				Optional:            true,
 			},
 			"key_id": schema.StringAttribute{
-				MarkdownDescription: "API Key ID for HMAC authentication",
+				MarkdownDescription: "API key ID. Can also be set with the `H3_KEY_ID` environment variable (recommended).",
 				Optional:            true,
 				Sensitive:           true,
 			},
 			"secret_key": schema.StringAttribute{
-				MarkdownDescription: "API Secret Key for HMAC signing",
+				MarkdownDescription: "API key secret used to sign requests (HMAC-SHA256). Can also be set with the `H3_SECRET_KEY` environment variable (recommended).",
 				Optional:            true,
 				Sensitive:           true,
 			},
 			"timeout": schema.Int64Attribute{
-				MarkdownDescription: "Request timeout in seconds (default: 30)",
+				MarkdownDescription: "Timeout of a single HTTP request in seconds (default: 30, env `H3_TIMEOUT`). Waiting for resources to become ready is not limited by it.",
 				Optional:            true,
 			},
+			"project_id": schema.StringAttribute{
+				MarkdownDescription: "Default project (UUID) of resources and data sources that do not set `project_id`. " +
+					"Can also be set with the `H3_PROJECT_ID` environment variable. Changing it later does not move existing resources: " +
+					"they keep the project recorded in state.",
+				Optional: true,
+			},
 			"max_retries": schema.Int64Attribute{
-				MarkdownDescription: "Maximum retry attempts (default: 3)",
-				Optional:            true,
+				MarkdownDescription: "Retries after a failed request (default: 3, env `H3_MAX_RETRIES`; `0` disables retries). " +
+					"Reads and deletes are retried on network errors and 429/5xx; creates (POST) only on 429/502/503/504, honoring `Retry-After`.",
+				Optional: true,
 			},
 		},
 	}
@@ -96,7 +112,7 @@ func (p *H3Provider) Configure(ctx context.Context, req provider.ConfigureReques
 		apiEndpoint = config.APIEndpoint.ValueString()
 	}
 	if apiEndpoint == "" {
-		apiEndpoint = "http://127.0.0.1:4001"
+		apiEndpoint = client.DefaultEndpoint
 	}
 
 	// Key ID
@@ -125,16 +141,21 @@ func (p *H3Provider) Configure(ctx context.Context, req provider.ConfigureReques
 		return
 	}
 
-	// Timeout
-	timeout := int64(30)
-	if !config.Timeout.IsNull() {
-		timeout = config.Timeout.ValueInt64()
+	timeout, err := intSetting(config.Timeout, "H3_TIMEOUT", 30)
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid timeout", err.Error())
+		return
+	}
+	// -1 = not set: the client applies its default; 0 disables retries.
+	maxRetries, err := intSetting(config.MaxRetries, "H3_MAX_RETRIES", -1)
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid max_retries", err.Error())
+		return
 	}
 
-	// Max Retries
-	maxRetries := int64(3)
-	if !config.MaxRetries.IsNull() {
-		maxRetries = config.MaxRetries.ValueInt64()
+	projectID := os.Getenv("H3_PROJECT_ID")
+	if !config.ProjectID.IsNull() && !config.ProjectID.IsUnknown() {
+		projectID = config.ProjectID.ValueString()
 	}
 
 	// Создаем HTTP клиент с HMAC
@@ -144,6 +165,8 @@ func (p *H3Provider) Configure(ctx context.Context, req provider.ConfigureReques
 		SecretKey:  secretKey,
 		Timeout:    time.Duration(timeout) * time.Second,
 		MaxRetries: int(maxRetries),
+		ProjectID:  projectID,
+		UserAgent:  fmt.Sprintf("terraform-provider-h3/%s (+terraform %s)", p.version, req.TerraformVersion),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -160,18 +183,79 @@ func (p *H3Provider) Configure(ctx context.Context, req provider.ConfigureReques
 func (p *H3Provider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		vm.NewVMResource,
+		vm.NewSSHAccessResource,
+		vm.NewPlacementGroupResource,
+		vm.NewCustomImageResource,
 		disk.NewDiskResource,
 		snapshot.NewSnapshotResource,
 		backup.NewBackupResource,
 		net.NewVPCResource,
 		net.NewNetworkResource,
 		net.NewEIPResource,
+		net.NewVPCRouteResource,
+		// Deprecated aliases (0.3.0), removed in 1.0.
+		net.NewOVNVPCResource,
+		net.NewOVNNetworkResource,
+		net.NewOVNEIPResource,
 		s3.NewBucketResource,
 		ssh.NewSSHKeyResource,
+		dns.NewZoneResource,
+		dns.NewRecordSetResource,
+		dns.NewPTRResource,
+		database.NewDatabaseResource,
+		database.NewUserResource,
+		database.NewPoolerResource,
+		sg.NewGroupResource,
+		sg.NewRuleResource,
+		sg.NewVMGroupsResource,
+		sg.NewAttachmentResource,
+		k8s.NewClusterResource,
+		k8s.NewNodePoolResource,
+		lb.NewLBResource,
+		iam.NewServiceAccountResource,
+		iam.NewKeyResource,
 	}
 }
 
 // DataSources возвращает список data sources провайдера
 func (p *H3Provider) DataSources(ctx context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource{}
+	return []func() datasource.DataSource{
+		vm.NewImagesDataSource,
+		vm.NewCustomImageDataSource,
+		vm.NewPlacementGroupDataSource,
+		sg.NewGroupDataSource,
+		dns.NewZoneDataSource,
+		dns.NewNameserversDataSource,
+		net.NewVPCDataSource,
+		net.NewNetworkDataSource,
+		net.NewEIPDataSource,
+		net.NewEIPsDataSource,
+		k8s.NewVersionsDataSource,
+		k8s.NewClusterDataSource,
+		k8s.NewKubeconfigDataSource,
+		k8s.NewNodePoolsDataSource,
+		lb.NewLBDataSource,
+		lb.NewLBsDataSource,
+		database.NewPoolersDataSource,
+		iam.NewServiceAccountsDataSource,
+		iam.NewAuditEventsDataSource,
+	}
+}
+
+// intSetting returns the provider attribute, else the environment variable, else def.
+func intSetting(attr types.Int64, env string, def int64) (int64, error) {
+	if !attr.IsNull() && !attr.IsUnknown() {
+		if attr.ValueInt64() < 0 {
+			return 0, fmt.Errorf("value must be >= 0, got %d", attr.ValueInt64())
+		}
+		return attr.ValueInt64(), nil
+	}
+	if v := os.Getenv(env); v != "" {
+		n, err := strconv.ParseInt(v, 10, 64)
+		if err != nil || n < 0 {
+			return 0, fmt.Errorf("%s must be a non-negative integer, got %q", env, v)
+		}
+		return n, nil
+	}
+	return def, nil
 }

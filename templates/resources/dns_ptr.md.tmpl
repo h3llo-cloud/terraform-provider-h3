@@ -1,0 +1,20 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.RenderedProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+Reverse DNS (PTR) of an EIP of the project. `hostname` must already resolve to the EIP address (forward-confirmed reverse DNS): create the A/AAAA record first and add `depends_on`. Destroy resets the PTR to the platform default (`ip-a-b-c-d.<region>.ip.<svc-zone>`).
+
+## Example Usage
+
+{{ tffile "examples/resources/h3_dns_ptr/resource.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+{{ codefile "shell" "examples/resources/h3_dns_ptr/import.sh" }}

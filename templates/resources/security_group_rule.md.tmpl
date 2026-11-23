@@ -1,0 +1,23 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.RenderedProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+One rule of a security group, managed separately from the group. Use it only on groups without inline `rule` blocks in
+`h3_security_group`. Any change replaces the rule. Several rule resources of one group can be applied in parallel.
+
+## Example Usage
+
+{{ tffile "examples/resources/h3_security_group_rule/resource.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+{{ codefile "shell" "examples/resources/h3_security_group_rule/import.sh" }}
+
+Rule ids are listed by the `h3_security_group` data source (`rules[*].id`).
