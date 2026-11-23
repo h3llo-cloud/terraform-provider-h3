@@ -7,15 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.0-rc.3] - 2026-11-23
-
-- `0.3.0-rc.2` was tagged but never published either (the release job could not fetch Go 1.26.11);
-  `0.3.0-rc.3` is built by a release image that carries Go 1.26.11.
-
-### Fixed
-
-- Release binaries are built with Go 1.26.11 (GO-2026-6859 in `net/http`). `0.3.0-rc.1` was tagged but never published:
-  its release pipeline stopped before signing. `0.3.0-rc.2` carries the changes listed under `0.3.0-rc.1`.
+## [0.3.0] - 2026-11-24
 
 Upgrade guide: `docs/guides/migration-0.3.md`. Nothing in 0.3.0 requires recreating resources.
 
@@ -259,6 +251,10 @@ The services below are not yet reachable, so their resources fail with a 404 (or
 - **h3_database:** on platforms with the network service, `white_ip = true` without `eip_id` leases a new, billed
   project EIP, and destroying the database keeps that EIP in the project (billed) unless `release_eip_on_destroy` is
   set.
+
+### Fixed
+
+- Release binaries are built with Go 1.26.11 (GO-2026-6859 in `net/http`).
 
 ## [0.2.0] - 2026-10-07
 
